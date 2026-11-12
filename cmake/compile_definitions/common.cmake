@@ -125,6 +125,16 @@ set(SUNSHINE_TARGET_FILES
         "${CMAKE_SOURCE_DIR}/src/confighttp.h"
         "${CMAKE_SOURCE_DIR}/src/webrtc_stream.cpp"
         "${CMAKE_SOURCE_DIR}/src/webrtc_stream.h"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/input_bridge.cpp"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/input_bridge.h"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/protocol.cpp"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/protocol.h"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/sdp.cpp"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/sdp.h"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/tv_auth.cpp"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/tv_auth.h"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/webrtc_stream.cpp"
+        "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/webrtc_stream.h"
         "${CMAKE_SOURCE_DIR}/src/rtsp.cpp"
         "${CMAKE_SOURCE_DIR}/src/rtsp.h"
         "${CMAKE_SOURCE_DIR}/src/stream.cpp"
@@ -343,4 +353,5 @@ list(APPEND SUNSHINE_EXTERNAL_LIBRARIES
         ${FFMPEG_LIBRARIES}
         ${Boost_LIBRARIES}
         ${OPENSSL_LIBRARIES}
-        ${PLATFORM_LIBRARIES})
+        ${PLATFORM_LIBRARIES}
+        ${SUNSHINE_LIBDATACHANNEL_TARGET})

@@ -99,6 +99,7 @@
 #include "uuid.h"
 #include "video.h"
 #include "webrtc_stream.h"
+#include "tizen_webrtc/webrtc_stream.h"
 
 using namespace std::literals;
 
@@ -211,7 +212,8 @@ namespace nvhttp {
              stream::session::teardown_sessions.load(std::memory_order_acquire) != 0 ||
              webrtc_stream::has_active_or_pending_sessions() ||
              webrtc_stream::has_capture_active() ||
-             webrtc_stream::has_teardown_in_progress();
+             webrtc_stream::has_teardown_in_progress() ||
+             tizen_webrtc::session_count() > 0;
     }
   }  // namespace
 
@@ -6426,6 +6428,13 @@ launch_session->exact_target_hold.reset();
     auto pkey = file_handler::read_file(config::nvhttp.pkey.c_str());
     auto cert = file_handler::read_file(config::nvhttp.cert.c_str());
     setup(pkey, cert);
+
+    // stream_protocol=webrtc keeps paired clients for the Web UI, but closes GameStream listeners.
+    if (!config::moonlight_enabled()) {
+      BOOST_LOG(info) << "Moonlight clients disabled by stream_protocol"sv;
+      shutdown_event->view();
+      return;
+    }
 
     auto add_cert = std::make_shared<safe::queue_t<crypto::x509_t>>(30);
 

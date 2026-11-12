@@ -75,3 +75,6 @@ AGENTS.md
 test_sunshine.log
 vibeshine_state.json
 .claude/
+
+# Local Samsung Tizen package build
+/build-pkg/

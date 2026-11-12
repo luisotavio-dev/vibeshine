@@ -1398,10 +1398,27 @@ namespace platf {
         plane_t plane = drmModeGetPlane(card.fd.el, plane_id);
         frame_timestamp = std::chrono::steady_clock::now();
 
-        // A disconnected output temporarily has no plane framebuffer. End this
-        // capture generation instead of retrying and logging at the frame rate.
+        // Dummy/CRTC modesets can briefly clear plane->fb_id. Returning reinit
+        // tears the capture generation down and races recovery (map kept, but
+        // init cannot find a plane with a framebuffer yet). Timeout keeps the
+        // session and retries the next frame without logging at 60 Hz.
         if (!plane || plane->fb_id == 0) {
-          return capture_e::reinit;
+          // A gap that outlasts a modeset is not transient (display off, or the
+          // output moved to another plane). Reinit instead of freezing silently.
+          const auto now = std::chrono::steady_clock::now();
+          if (!framebuffer_gap_start) {
+            framebuffer_gap_start = now;
+            BOOST_LOG(warning) << "KMS plane ["sv << plane_id << "] has no framebuffer; holding the last frame"sv;
+          } else if (now - *framebuffer_gap_start >= std::chrono::seconds(5)) {
+            BOOST_LOG(warning) << "KMS plane ["sv << plane_id << "] had no framebuffer for 5 seconds; reinitializing capture"sv;
+            framebuffer_gap_start.reset();
+            return capture_e::reinit;
+          }
+          return capture_e::timeout;
+        }
+        if (framebuffer_gap_start) {
+          BOOST_LOG(info) << "KMS plane ["sv << plane_id << "] framebuffer returned"sv;
+          framebuffer_gap_start.reset();
         }
 
         auto fb = card.fb(plane.get());
@@ -2116,6 +2133,7 @@ namespace platf {
       int img_offset_y;
 
       int plane_id;
+      std::optional<std::chrono::steady_clock::time_point> framebuffer_gap_start;
       int crtc_id;
       int crtc_index;
 
@@ -2749,6 +2767,22 @@ namespace platf {
       if (selected != named_monitors.end()) {
         std::rotate(named_monitors.begin(), selected, std::next(selected));
       }
+    }
+
+    // Mid-stream reenumeration can observe a transient plane/fb gap (modeset,
+    // Dummy/CRTC churn). Publishing that empty map would leave connector names
+    // in video::refresh_displays while resolve_named_monitor() can no longer
+    // find them, so capture never reattaches until a brand-new session.
+    if (named_monitors.empty() && !kms::named_monitors.empty()) {
+      BOOST_LOG(warning)
+        << "KMS reenumeration found no active planes; keeping previous monitor map ("sv
+        << kms::named_monitors.size() << " monitor(s))"sv;
+      std::vector<std::string> previous_names;
+      previous_names.reserve(kms::named_monitors.size());
+      for (const auto &named_monitor : kms::named_monitors) {
+        previous_names.emplace_back(named_monitor.display_name);
+      }
+      return previous_names;
     }
 
     std::vector<std::string> display_names;

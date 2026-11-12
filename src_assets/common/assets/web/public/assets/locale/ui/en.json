@@ -1778,6 +1778,22 @@
         "wgc_pacing_smoothing": {
           "description": "Reduce visible pacing changes when Windows Graphics Capture is active.",
           "label": "Smooth Windows capture cadence"
+        },
+        "stream_protocol": {
+          "label": "Streaming protocols",
+          "description": "Serve Moonlight apps, Moonlight WebRTC on Samsung Tizen TVs, or both. Disabled protocol ports stay closed."
+        },
+        "webrtc_port": {
+          "label": "Moonlight WebRTC TV port",
+          "description": "TCP port of the WebSocket the TV connects to. The TV app uses 8000 unless another port is entered with the PC address. Range: 1024-65535."
+        },
+        "webrtc_media_port_min": {
+          "label": "Moonlight WebRTC first media port",
+          "description": "First UDP port WebRTC video and audio may use, so a firewall only needs that range open. 0 for both ports lets WebRTC pick any port."
+        },
+        "webrtc_media_port_max": {
+          "label": "Moonlight WebRTC last media port",
+          "description": "Last UDP port WebRTC video and audio may use. 0 leaves the range open upwards, to 65535."
         }
       },
       "integrations": {
@@ -2193,7 +2209,12 @@
           "preserve": "@:config.virtual_display_scale_auto",
           "recommended": "@:config.virtual_display_scale_recommended"
         },
-        "unsupported_saved": "Unsupported saved value ({value})"
+        "unsupported_saved": "Unsupported saved value ({value})",
+        "stream_protocol": {
+          "moonlight": "Moonlight",
+          "webrtc": "WebRTC (Tizen TV)",
+          "both": "Both"
+        }
       },
       "placeholders": {
         "follow_client": "0 · Follow the client",

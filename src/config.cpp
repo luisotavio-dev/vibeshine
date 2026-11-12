@@ -995,6 +995,34 @@ namespace config {
     ENCRYPTION_MODE_OPPORTUNISTIC,  // wan_encryption_mode
   };
 
+  webrtc_t webrtc {
+    stream_protocol_e::both,  // protocol
+    8000,  // port, the Moonlight WebRTC TV client's default
+    0,  // media_port_min, any
+    0,  // media_port_max, any
+  };
+
+  stream_protocol_e stream_protocol_from_view(std::string_view protocol) {
+    if (protocol == "moonlight"sv) {
+      return stream_protocol_e::moonlight;
+    }
+    if (protocol == "webrtc"sv) {
+      return stream_protocol_e::webrtc;
+    }
+    if (protocol != "both"sv) {
+      BOOST_LOG(warning) << "config: unknown stream_protocol value: "sv << protocol;
+    }
+    return stream_protocol_e::both;
+  }
+
+  bool moonlight_enabled() {
+    return webrtc.protocol != stream_protocol_e::webrtc;
+  }
+
+  bool webrtc_enabled() {
+    return webrtc.protocol != stream_protocol_e::moonlight;
+  }
+
   nvhttp_t nvhttp {
     "lan",  // origin web manager
 
@@ -2135,6 +2163,18 @@ namespace config {
     int_between_f(vars, "fec_percentage", stream.fec_percentage, {1, 255});
     vars.erase("pyrowave_send_rate_mbps");
     int_between_f(vars, "pyrowave_critical_fec_percentage", stream.pyrowave_critical_fec_percentage, {0, 255});
+
+    // webrtc_enabled predates stream_protocol: disabled still means Moonlight only.
+    if (const auto legacy = vars.find("webrtc_enabled"); legacy != std::end(vars)) {
+      if (!vars.contains("stream_protocol") && !to_bool(legacy->second)) {
+        webrtc.protocol = stream_protocol_e::moonlight;
+      }
+      vars.erase(legacy);
+    }
+    generic_f(vars, "stream_protocol", webrtc.protocol, stream_protocol_from_view);
+    int_between_f(vars, "webrtc_port", webrtc.port, {1024, 65535});
+    int_between_f(vars, "webrtc_media_port_min", webrtc.media_port_min, {0, 65535});
+    int_between_f(vars, "webrtc_media_port_max", webrtc.media_port_max, {0, 65535});
     int_between_f(vars, "video_max_batch_size_kb", stream.video_max_batch_size_kb, {0, 64});
     bool_f(vars, "pacing_batch_demand_limit", stream.pacing_batch_demand_limit);
     bool_f(vars, "host_adaptive_pacing", stream.host_adaptive_pacing);

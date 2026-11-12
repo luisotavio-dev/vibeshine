@@ -244,8 +244,7 @@ namespace audio {
     int channels_ {0};
   };
 
-  void encodeThread(sample_queue_t samples, config_t config, void *channel_data) {
-    auto packets = mail::man->queue<packet_t>(mail::audio_packets);
+  void encodeThread(sample_queue_t samples, safe::mail_raw_t::queue_t<packet_t> packets, config_t config, void *channel_data) {
     auto stream = stream_configs[map_stream(config.channels, config.flags[config_t::HIGH_QUALITY])];
     if (config.flags[config_t::CUSTOM_SURROUND_PARAMS]) {
       apply_surround_params(stream, config.customStreamParams);
@@ -408,7 +407,7 @@ namespace audio {
     std::thread thread;
     if (!config.bypass_opus) {
       samples = std::make_shared<sample_queue_t::element_type>(30);
-      thread = std::thread {encodeThread, samples, config, channel_data};
+      thread = std::thread {encodeThread, samples, mail::packet_queue<packet_t>(mail, mail::audio_packets), config, channel_data};
     }
 
     auto fg = util::fail_guard([&]() {

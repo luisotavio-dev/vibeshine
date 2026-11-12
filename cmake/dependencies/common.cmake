@@ -63,3 +63,6 @@ endif()
 
 # PyroWave codec library (optional)
 include("${CMAKE_MODULE_PATH}/dependencies/pyrowave.cmake")
+
+# Moonlight WebRTC TV (Tizen) signaling/media via libdatachannel
+include("${CMAKE_MODULE_PATH}/dependencies/libdatachannel.cmake")
