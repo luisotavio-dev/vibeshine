@@ -73,6 +73,7 @@
 #include "host_stats.h"
 #include "video.h"
 #include "webrtc_stream.h"
+#include "tizen_webrtc/webrtc_stream.h"
 
 #ifdef _WIN32
   #include "platform/windows/service_startup.h"
@@ -2359,7 +2360,10 @@ namespace confighttp {
 
     print_req(request);
 
-    const nlohmann::json named_certs = nvhttp::get_all_clients();
+    nlohmann::json named_certs = nvhttp::get_all_clients();
+    for (const auto &tv : tizen_webrtc::paired_tvs()) {
+      named_certs.push_back({{"name", tv.name}, {"uuid", tv.id}, {"enabled", tv.enabled}});
+    }
 
     nlohmann::json output_tree;
     output_tree["named_certs"] = named_certs;
@@ -2622,11 +2626,21 @@ namespace confighttp {
       }
       // Apply a requested disable before introducing a separate sleep grant.
       if (input_tree.contains("enabled")) {
-        output_tree["enabled_updated"] = nvhttp::set_client_enabled(uuid, input_tree.value("enabled", true));
-        if (!has_device_fields && !hdr_profile.has_value() && !input_tree.contains("allow_sleep")) {
-          output_tree["status"] = output_tree["enabled_updated"];
-          send_response(response, output_tree);
-          return;
+        const bool enabled = input_tree.value("enabled", true);
+        if (const auto tv = tizen_webrtc::set_tv_enabled(uuid, enabled); tv.has_value()) {
+          output_tree["enabled_updated"] = *tv;
+          if (!has_device_fields && !hdr_profile.has_value() && !input_tree.contains("allow_sleep")) {
+            output_tree["status"] = *tv;
+            send_response(response, output_tree);
+            return;
+          }
+        } else {
+          output_tree["enabled_updated"] = nvhttp::set_client_enabled(uuid, enabled);
+          if (!has_device_fields && !hdr_profile.has_value() && !input_tree.contains("allow_sleep")) {
+            output_tree["status"] = output_tree["enabled_updated"];
+            send_response(response, output_tree);
+            return;
+          }
         }
       }
       if (input_tree.contains("allow_sleep")) {
@@ -2762,7 +2776,11 @@ namespace confighttp {
       nlohmann::json output_tree;
       const nlohmann::json input_tree = nlohmann::json::parse(ss);
       const std::string uuid = input_tree.value("uuid", "");
-      output_tree["status"] = nvhttp::unpair_client(uuid);
+      if (const auto tv = tizen_webrtc::unpair_tv(uuid); tv.has_value()) {
+        output_tree["status"] = *tv;
+      } else {
+        output_tree["status"] = nvhttp::unpair_client(uuid);
+      }
       send_response(response, output_tree);
     } catch (std::exception &e) {
       BOOST_LOG(warning) << "Unpair: "sv << e.what();
@@ -2788,6 +2806,11 @@ namespace confighttp {
     print_req(request);
 
     const bool persisted = nvhttp::erase_all_clients();
+    try {
+      (void) tizen_webrtc::unpair_all_tvs();
+    } catch (const std::exception &e) {
+      BOOST_LOG(warning) << "UnpairAll: paired TVs could not be removed: "sv << e.what();
+    }
     proc::proc.terminate();
 
     nlohmann::json output_tree;
@@ -4645,9 +4668,23 @@ namespace confighttp {
         bad_request(response, request, "PIN must be between 0000 and 9999");
       }
 
-      output_tree["status"] = nvhttp::pin(pin, name);
-      if (!output_tree["status"].get<bool>()) {
-        BOOST_LOG(warning) << "SavePin: no pending Moonlight pairing request accepted the submitted PIN";
+      bool paired = false;
+      bool tried_tv = false;
+      for (const auto &pending : tizen_webrtc::pending_tv_pairings()) {
+        const auto tv_paired = tizen_webrtc::approve_tv_pairing(pending.id, pin, name);
+        if (!tv_paired.has_value()) {
+          continue;
+        }
+        tried_tv = true;
+        paired = *tv_paired;
+        break;
+      }
+      if (!tried_tv) {
+        paired = nvhttp::pin(pin, name);
+      }
+      output_tree["status"] = paired;
+      if (!paired) {
+        BOOST_LOG(warning) << "SavePin: no pending Moonlight or WebRTC TV pairing request accepted the submitted PIN";
       }
       send_response(response, output_tree);
     } catch (std::exception &e) {

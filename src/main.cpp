@@ -20,6 +20,7 @@
 #include <thread>
 
 // local includes
+#include "config.h"
 #include "confighttp.h"
 #include "entry_handler.h"
 #include "globals.h"
@@ -45,6 +46,7 @@
   #include "lutris_auto_sync.h"
 #endif
 #include "webrtc_stream.h"
+#include "tizen_webrtc/webrtc_stream.h"
 #ifdef _WIN32
   #include <shobjidl.h>
 
@@ -1018,14 +1020,19 @@ int main(int argc, char *argv[]) {
     return lifetime::desired_exit_code;
   }
 
+  // Moonlight discovery/UPnP only when GameStream is enabled.
   std::unique_ptr<platf::deinit_t> mDNS;
   auto sync_mDNS = std::async(std::launch::async, [&mDNS]() {
-    mDNS = platf::publish::start();
+    if (config::moonlight_enabled()) {
+      mDNS = platf::publish::start();
+    }
   });
 
   std::unique_ptr<platf::deinit_t> upnp_unmap;
   auto sync_upnp = std::async(std::launch::async, [&upnp_unmap]() {
-    upnp_unmap = upnp::start();
+    if (config::moonlight_enabled()) {
+      upnp_unmap = upnp::start();
+    }
   });
 
   // FIXME: Temporary workaround: Simple-Web_server needs to be updated or replaced
@@ -1035,7 +1042,11 @@ int main(int argc, char *argv[]) {
   }
 
   std::thread httpThread {nvhttp::start};
-  std::thread rtspThread {rtsp_stream::start};
+  std::thread rtspThread;
+  if (config::moonlight_enabled()) {
+    rtspThread = std::thread {rtsp_stream::start};
+  }
+  std::thread tizenWebrtcThread {tizen_webrtc::start};
 
 #ifdef _WIN32
   // Stale-display cleanup is separate from encoder validation and therefore
@@ -1100,7 +1111,12 @@ int main(int argc, char *argv[]) {
   shutdown_phase_state.set(shutdown_phase::phase_e::config_thread_join);
   configThread.join();
   shutdown_phase_state.set(shutdown_phase::phase_e::rtsp_thread_join);
-  rtspThread.join();
+  if (rtspThread.joinable()) {
+    rtspThread.join();
+  }
+  if (tizenWebrtcThread.joinable()) {
+    tizenWebrtcThread.join();
+  }
 
 #ifdef __linux__
   shutdown_phase_state.set(shutdown_phase::phase_e::lutris_autosync_stop);

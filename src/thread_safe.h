@@ -829,6 +829,16 @@ namespace safe {
       return post;
     }
 
+    /**
+     * @brief Check whether a live event or queue is registered under an identifier.
+     */
+    bool has(const std::string_view &id) {
+      std::lock_guard lg {mutex};
+
+      auto it = id_to_post.find(id);
+      return it != std::end(id_to_post) && !it->second.expired();
+    }
+
     void cleanup() {
       std::lock_guard lg {mutex};
 

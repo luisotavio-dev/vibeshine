@@ -1,0 +1,137 @@
+# Moonlight WebRTC for Samsung Tizen
+
+This branch is a Samsung Tizen edition of Vibeshine, based on upstream master.
+System application removal/restoration uses the upstream implementation; the previous
+local `hidden` setting is no longer used. Remove unwanted system apps through the web UI.
+
+The scripts `install-tizen-webrtc-over-2.0.4.sh`, `reinstall-host-only.sh`, and
+`fix-tizen-webrtc-port.sh` preserve this PC's Linux installation workflow. They assume
+the paths and systemd services described in the scripts; they are not universal installers.
+`build-pkg/` is local build output and is intentionally excluded from Git.
+The original patch series in `patches/tizen-webrtc/` is retained as a historical
+reference; its changes are already integrated and must not be applied again.
+
+This fork of Sunshine streams directly to the
+[Moonlight WebRTC](https://github.com/tsoas/moonlight-webrtc-tizen) app on Samsung Tizen TVs.
+The TV talks to Sunshine itself; the separate Moonlight WebRTC Gateway is no longer needed.
+
+## Why it is built into Sunshine
+
+With the Gateway, every frame crossed two transports on the PC before reaching the TV:
+
+```text
+encoder â”€â–º GameStream RTP + FEC + AES â”€â–º loopback UDP â”€â–º moonlight-common-c
+        (reassembly, FEC, decryption, frame queue) â”€â–º WebRTC packetizer â”€â–º TV
+```
+
+Built into Sunshine, the encoded frame goes from the encoder straight to the WebRTC packetizer:
+
+```text
+encoder â”€â–º WebRTC packetizer (RTP over DTLS-SRTP) â”€â–º TV
+```
+
+This removes the GameStream packetization, Reed-Solomon FEC, encryption and decryption, the loopback
+hop, the client-side frame reassembly and its queue, and a second process. Keyframe requests (RTCP PLI)
+reach the encoder directly instead of travelling back through the GameStream control channel. Nothing
+else changes: the TV app, its protocol and the encoded bitstream are the same, so the gain is the
+host-side pipeline only. The TV's decode time and the network are unaffected.
+
+Because there is no GameStream FEC to pay for, the video encoder receives the bitrate the TV selected,
+less the Opus audio and a small RTP allowance, instead of losing 20% to FEC as it did through the Gateway.
+
+## Setup
+
+1. Install this build of Sunshine and complete its normal first-run setup.
+2. If the Moonlight WebRTC Gateway is installed on the same PC, uninstall it or stop its service: both
+   use port 8000.
+3. On the TV, open Moonlight WebRTC. It finds this PC by broadcasting to UDP port 8000, which Sunshine
+   answers with its name, its `webrtc_port` and its Wake-on-LAN address. On a network that blocks
+   broadcasts, add the PC by its address and port.
+4. The TV shows a four-digit PIN. In the Sunshine Web UI, open **PIN**, select the TV in the list of
+   devices waiting to pair (it appears beside any Moonlight client), and enter the PIN. The name typed
+   there is the TV's name in Sunshine.
+
+Pairing works like Moonlight's: the TV picks the PIN and only a user signed in to the Web UI can approve
+it. A wrong PIN ends the request and the TV shows a new PIN at once; an unused PIN is replaced after five
+minutes. Older TV apps, which entered a PIN shown on the PC, are told to update.
+
+There is no Moonlight pairing between the Gateway and Sunshine any more, so the TV only shows Sunshine as
+available while Sunshine is running.
+
+## Configuration
+
+| Option                  | Default | Description                                                              |
+|-------------------------|---------|--------------------------------------------------------------------------|
+| `stream_protocol`       | `both`  | `moonlight`, `webrtc` or `both`: which clients Sunshine serves.          |
+| `webrtc_port`           | `8000`  | TCP port of the signaling WebSocket.                                     |
+| `webrtc_media_port_min` | `0`     | First UDP port for WebRTC video and audio; 0 with the next one for any.  |
+| `webrtc_media_port_max` | `0`     | Last UDP port for WebRTC video and audio.                                |
+
+`stream_protocol` is the switch at the top of the **Network** tab of the configuration page; the other
+options are further down the same tab, whose port table lists the ports each enabled protocol needs.
+With `webrtc`, Sunshine neither publishes itself over mDNS nor listens on the GameStream ports, so a PC
+can serve TVs only; with `moonlight` the TV server does not start. It replaces `webrtc_enabled`: a
+configuration file that still says `webrtc_enabled = disabled` and has no `stream_protocol` serves
+Moonlight only.
+
+TV discovery always listens on UDP port 8000, whatever `webrtc_port` is, and answers only peers on the
+local network: loopback, private, link-local and unique local addresses. The socket is shared, so
+several Sunshine instances on one PC, each with its own `webrtc_port`, all answer a TV's broadcast.
+Sunshine's firewall rule, which allows its executable, already covers discovery; a firewall that opens
+ports instead needs TCP `webrtc_port`, UDP 8000 and the media range.
+
+## Behaviour
+
+The protocol is version 2 of the Moonlight WebRTC Gateway protocol, unchanged, so the existing TV app
+works as is. Sunshine implements it as follows:
+
+- **Applications** come from Sunshine's application list, with their configured cover art.
+- **Starting** an application launches it like a Moonlight launch, including display configuration and
+  encoder probing; an application that is already running is resumed. Starting a different application
+  while one runs is refused, as Moonlight does; the TV offers to switch instead.
+- **Stopping the stream** leaves the application running. **Stopping the application** ends every
+  stream, Moonlight's included, and terminates the application.
+- **Frame rates** of 30, 60, 90 and 120 fps are offered at every resolution. The TV streams at the
+  highest one its decoder announces it sustains, or lets the user choose when it announces none.
+- **Codecs** are offered from what Sunshine's encoder probe found: AV1 only when the GPU encodes it, and
+  AV1 HDR only with AV1 Main10. HEVC and HEVC HDR requests fail when the encoder lacks them.
+- **HDR** requires the host display to be in HDR mode, or Sunshine's display device settings to enable
+  it. A stream that asked for HDR ends with an error instead of silently sending SDR.
+- **Controllers** are announced to Sunshine as Moonlight controllers, so Sunshine's controller emulation
+  and rumble work as with any Moonlight client. Holding Start toggles mouse emulation.
+- **Paired TVs** appear in the client list under **Troubleshooting**, like Moonlight clients: a TV can be
+  disabled there, which keeps it paired but refuses it until it is enabled again, or unpaired. They are
+  stored in `webrtc_tv_clients.json` in Sunshine's configuration directory.
+- **Latency.** Video packets carry the WebRTC playout-delay extension set to zero, which TVs that accept
+  it in their answer honour by showing each frame the moment it is decoded, with no jitter buffer
+  smoothing. Audio is sent in a media stream of its own, so the TV does not hold the picture back to
+  keep lip sync. `tests/webrtc_e2e` measures the result from screen to screen.
+
+## Web UI API
+
+| Endpoint                       | Description                                         |
+|--------------------------------|-----------------------------------------------------|
+| `GET /api/pin`                 | Lists TVs waiting to pair beside Moonlight clients. |
+| `POST /api/pin`                | Pairs the selected TV when the PIN matches its own. |
+| `DELETE /api/pin`              | Declines the selected TV's pairing request.         |
+| `GET /api/clients/list`        | Lists paired TVs beside Moonlight clients.          |
+| `POST /api/clients/update`     | Enables or disables a TV; disabling disconnects it. |
+| `POST /api/clients/unpair`     | Forgets one TV and disconnects it.                  |
+| `POST /api/clients/unpair-all` | Forgets every client, TVs included.                 |
+
+## Implementation
+
+| File                           | Role                                                                 |
+|--------------------------------|----------------------------------------------------------------------|
+| `src/tizen_webrtc/webrtc_stream.cpp` | Signaling server, TV sessions, application lifecycle, media pumping. |
+| `src/tizen_webrtc/protocol.cpp`      | Protocol messages and stream settings.                               |
+| `src/tizen_webrtc/tv_auth.cpp`       | TV pairing requests, credential store and HMAC authentication.         |
+| `src/tizen_webrtc/sdp.cpp`           | Samsung Game Mode `imageattr` and HEVC Main10 SDP handling.          |
+| `src/tizen_webrtc/input_bridge.cpp`  | Gamepad snapshots to Moonlight input packets, mouse mode, rumble.    |
+
+Sunshine's encoders publish to a process-wide queue drained by the GameStream sender. A session can now
+register its own `video_packets` and `audio_packets` queues in its mailbox (`mail::packet_queue()`); the
+WebRTC stream does, so its frames never reach the GameStream sender. Moonlight sessions are unaffected.
+
+[libdatachannel](https://github.com/paullouisageneau/libdatachannel) provides WebRTC. When no system
+package is found it is built from source with Sunshine (`cmake/dependencies/libdatachannel.cmake`).
