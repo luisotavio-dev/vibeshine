@@ -43,6 +43,9 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
         GIT_SUBMODULES deps/plog deps/usrsctp deps/libjuice deps/libsrtp
         EXCLUDE_FROM_ALL
+        # Retransmissions of packets older than libSRTP's outbound window fail; see the script.
+        PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -P ${CMAKE_CURRENT_LIST_DIR}/libdatachannel-srtp-window.cmake
+        UPDATE_DISCONNECTED TRUE
 )
 
 # Build the static library only, without touching Sunshine's own BUILD_SHARED_LIBS choice.
