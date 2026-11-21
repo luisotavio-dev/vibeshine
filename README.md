@@ -1,5 +1,34 @@
 # Vibeshine
 
+> **Fork notice: Samsung Tizen WebRTC edition.**
+> This branch (`feat/tizen-webrtc-2.18.9`) of [luisotavio-dev/vibeshine](https://github.com/luisotavio-dev/vibeshine)
+> is [Nonary/vibeshine](https://github.com/Nonary/vibeshine) 2.18.9 plus direct WebRTC streaming to the
+> [Moonlight WebRTC](https://github.com/tsoas/moonlight-webrtc-tizen) app on Samsung Tizen TVs.
+> It is not an official Vibeshine build.
+>
+> Differences from upstream:
+>
+> * **Direct WebRTC to the TV.** The host runs the Moonlight WebRTC protocol v2 itself: signaling WebSocket on
+>   TCP `webrtc_port` (8000), TV discovery on UDP 8000, TV PIN pairing, app launch and stop, controller input
+>   and rumble. The separate Moonlight WebRTC Gateway is no longer needed. Encoded frames go from the session
+>   queues straight into WebRTC through [libdatachannel](https://github.com/paullouisageneau/libdatachannel).
+> * **Low-latency TV playback.** Samsung Game Mode SDP attributes, HEVC Main10 HDR negotiation, a zero
+>   playout-delay RTP extension, NACK retransmission with a large history, and a preventive IDR before the
+>   VAAPI GOP limit.
+> * **libdatachannel is linked statically on Linux.** The Linux host links libgcc statically, and an exception
+>   thrown across a shared libdatachannel would abort the host. The fetched source is patched to widen the
+>   outbound SRTP replay window to 16384 packets, so resends of older packets are not rejected
+>   (`SRTP protect error, status=10`).
+> * **Configuration and web UI.** New options `stream_protocol` (`moonlight`, `webrtc` or `both`),
+>   `webrtc_port`, `webrtc_media_port_min` and `webrtc_media_port_max`, plus TV client management in the
+>   web UI. With `stream_protocol = webrtc`, the GameStream ports and mDNS stay closed.
+> * **KMS capture recovery.** Bounded reinitialization when the KMS framebuffer disappears.
+>
+> Setup, ports and options: [docs/moonlight_webrtc_tizen.md](docs/moonlight_webrtc_tizen.md).
+> To install over the Arch package, build into `build-pkg/` and run `scripts/install-tizen-webrtc.sh`.
+> It backs up the packaged host and web UI, installs this build, opens TCP/UDP 8000 for the LAN in ufw and
+> adds `IgnorePkg = vibeshine` so pacman upgrades stop overwriting it.
+
 ## What is Vibeshine?
 
 Vibeshine is an AI‑enhanced version of Sunshine, a popular remote streaming application. It intends to integrate all scripts from myself (Nonary) and more.

@@ -1,10 +1,10 @@
 # Moonlight WebRTC for Samsung Tizen
 
-This branch is a Samsung Tizen edition of Vibeshine, based on upstream master.
+This branch is a Samsung Tizen edition of Vibeshine, based on upstream master (2.18.9).
 System application removal/restoration uses the upstream implementation; the previous
 local `hidden` setting is no longer used. Remove unwanted system apps through the web UI.
 
-The scripts `install-tizen-webrtc-over-2.0.4.sh`, `reinstall-host-only.sh`, and
+The scripts `install-tizen-webrtc.sh`, `reinstall-host-only.sh`, and
 `fix-tizen-webrtc-port.sh` preserve this PC's Linux installation workflow. They assume
 the paths and systemd services described in the scripts; they are not universal installers.
 `build-pkg/` is local build output and is intentionally excluded from Git.
