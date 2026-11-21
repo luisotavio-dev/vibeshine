@@ -2456,6 +2456,112 @@ These settings are host-wide and are not application runtime overrides.
     </tr>
 </table>
 
+### stream_protocol
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            Which clients Vibeshine serves: Moonlight apps, Moonlight WebRTC on Samsung Tizen TVs, or both.
+            The ports of a protocol that is off stay closed. See docs/moonlight_webrtc_tizen.md.
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            both
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            stream_protocol = webrtc
+            @endcode</td>
+    </tr>
+    <tr>
+        <td rowspan="3">Choices</td>
+        <td>moonlight</td>
+        <td>Moonlight apps only (GameStream)</td>
+    </tr>
+    <tr>
+        <td>webrtc</td>
+        <td>Moonlight WebRTC on Samsung Tizen TVs only</td>
+    </tr>
+    <tr>
+        <td>both</td>
+        <td>Both protocols</td>
+    </tr>
+</table>
+
+### webrtc_port
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            TCP port of the Moonlight WebRTC signaling WebSocket used by Samsung Tizen TVs. TV discovery always listens on UDP port 8000. See docs/moonlight_webrtc_tizen.md.
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            8000
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            webrtc_port = 8000
+            @endcode</td>
+    </tr>
+</table>
+
+### webrtc_media_port_min
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            First UDP port for WebRTC video and audio. 0, together with webrtc_media_port_max, lets the system pick any port.
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            0
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            webrtc_media_port_min = 50000
+            @endcode</td>
+    </tr>
+</table>
+
+### webrtc_media_port_max
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            Last UDP port for WebRTC video and audio. 0 leaves the range open upwards, to 65535.
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            0
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            webrtc_media_port_max = 50100
+            @endcode</td>
+    </tr>
+</table>
+
 ### bind_address
 
 <table>

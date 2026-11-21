@@ -48,7 +48,7 @@ TEST(LinuxPrivateDisplayRestorePolicy, SavesDesktopBeforeHotplugCanEnablePanelAn
 }
 
 TEST(LinuxPrivateDisplayRestorePolicy, ReconnectAndSecondClientKeepFirstSnapshot) {
-  std::optional<json> snapshot = external_desktop();
+  std::optional<json> snapshot {std::in_place, external_desktop()};
   const auto original = *snapshot;
   int queries = 0;
   int connections = 0;
@@ -785,7 +785,7 @@ TEST(LinuxPrivateDisplaySnapshot, RestartRestoresSavedIntentFromSerializedBaseli
 TEST(LinuxPrivateDisplaySnapshot, IdleRefreshRunsEvenWhenOldSnapshotAlreadyExists) {
   auto old = external_desktop();
   old["outputs"][0]["enabled"] = true;
-  std::optional<json> snapshot = old;
+  std::optional<json> snapshot {std::in_place, old};
   const auto current = external_desktop();
   int saves = 0;
   ASSERT_TRUE(snapshot_policy::capture(snapshot, current, {"Virtual-1"}, false, [&](const json &saved) {
@@ -798,7 +798,7 @@ TEST(LinuxPrivateDisplaySnapshot, IdleRefreshRunsEvenWhenOldSnapshotAlreadyExist
 }
 
 TEST(LinuxPrivateDisplaySnapshot, ConnectedPrivateOrRetainedOwnerPreservesCrashBaseline) {
-  std::optional<json> snapshot = external_desktop();
+  std::optional<json> snapshot {std::in_place, external_desktop()};
   const auto original = *snapshot;
   auto current = original;
   current["outputs"][1]["enabled"] = false;
@@ -818,7 +818,7 @@ TEST(LinuxPrivateDisplaySnapshot, ConnectedPrivateOrRetainedOwnerPreservesCrashB
 }
 
 TEST(LinuxPrivateDisplaySnapshot, FailedPersistencePreventsSnapshotReplacementAndHotplug) {
-  std::optional<json> snapshot = external_desktop();
+  std::optional<json> snapshot {std::in_place, external_desktop()};
   const auto original = *snapshot;
   auto current = original;
   current["outputs"][1]["rotation"] = 8;
@@ -1151,7 +1151,7 @@ TEST(LinuxPrivateDisplayHandoff, ReboundIntentSurvivesDesktopRestartAndVirtualOn
 
 TEST(LinuxPrivateDisplayHandoff, PendingBaselineSurvivesOrphanDisappearanceBeforeNewAcquisition) {
   const auto original = greeter_handoff_record()["topology"];
-  std::optional<json> snapshot = original;
+  std::optional<json> snapshot {std::in_place, original};
   auto current = orphan_desktop();
   current["outputs"].erase(2);
   unsigned writes = 0;

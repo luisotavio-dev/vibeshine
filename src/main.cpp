@@ -1042,10 +1042,8 @@ int main(int argc, char *argv[]) {
   }
 
   std::thread httpThread {nvhttp::start};
-  std::thread rtspThread;
-  if (config::moonlight_enabled()) {
-    rtspThread = std::thread {rtsp_stream::start};
-  }
+  // rtsp_stream::start returns at once when GameStream is disabled.
+  std::thread rtspThread {rtsp_stream::start};
   std::thread tizenWebrtcThread {tizen_webrtc::start};
 
 #ifdef _WIN32
@@ -1111,9 +1109,7 @@ int main(int argc, char *argv[]) {
   shutdown_phase_state.set(shutdown_phase::phase_e::config_thread_join);
   configThread.join();
   shutdown_phase_state.set(shutdown_phase::phase_e::rtsp_thread_join);
-  if (rtspThread.joinable()) {
-    rtspThread.join();
-  }
+  rtspThread.join();
   if (tizenWebrtcThread.joinable()) {
     tizenWebrtcThread.join();
   }
