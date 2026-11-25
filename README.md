@@ -1,5 +1,21 @@
 # Vibeshine
 
+> **Fork notice: native WebRTC streaming on Linux, for Samsung Tizen TVs.**
+> This fork of [Nonary/vibeshine](https://github.com/Nonary/vibeshine) follows upstream `canary` and adds a
+> Moonlight WebRTC TV server to the Linux host: the [Moonlight WebRTC](https://github.com/tsoas/moonlight-webrtc-tizen)
+> app on Samsung Tizen TVs streams from Vibeshine directly, without the Moonlight WebRTC Gateway. On Tizen 9, Game Mode
+> is limited to HDMI inputs, and the TV's WebRTC stack is the path that still reaches it. It is not an official
+> Vibeshine build. Upstream proposal: [Nonary/vibeshine#442](https://github.com/Nonary/vibeshine/discussions/442).
+>
+> * Turn it on with `stream_protocol = both` (or `webrtc`) in the **Network** tab. The default, `moonlight`, opens no
+>   new port.
+> * Built when `SUNSHINE_ENABLE_TIZEN_WEBRTC` is on (the default on Linux). libdatachannel is fetched and linked
+>   statically when no system package is found.
+> * Details: [docs/moonlight_webrtc_tizen.md](docs/moonlight_webrtc_tizen.md).
+> * To install a local build on Arch or CachyOS, use upstream's helper, which builds a native package and installs it
+>   through pacman: `python3 scripts/linux_local_deploy.py install` (see
+>   [docs/linux/local-development.md](docs/linux/local-development.md)).
+
 ## What is Vibeshine?
 
 Vibeshine is an AI‑enhanced version of Sunshine, a popular remote streaming application. It intends to integrate all scripts from myself (Nonary) and more.
