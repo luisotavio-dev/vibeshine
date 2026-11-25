@@ -63,3 +63,9 @@ endif()
 
 # PyroWave codec library (optional)
 include("${CMAKE_MODULE_PATH}/dependencies/pyrowave.cmake")
+
+# Moonlight WebRTC TV server (optional)
+if(SUNSHINE_ENABLE_TIZEN_WEBRTC)
+    include("${CMAKE_MODULE_PATH}/dependencies/libdatachannel.cmake")
+    list(APPEND SUNSHINE_DEFINITIONS SUNSHINE_ENABLE_TIZEN_WEBRTC=1)
+endif()

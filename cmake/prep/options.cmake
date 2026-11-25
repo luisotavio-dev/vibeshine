@@ -17,6 +17,13 @@ option(SUNSHINE_CONFIGURE_ONLY "Configure special files only, then exit." OFF)
 option(SUNSHINE_ENABLE_TRAY "Enable system tray icon." ON)
 option(SUNSHINE_ENABLE_WEBRTC "Enable WebRTC streaming support (Windows only)." OFF)
 
+# The Moonlight WebRTC TV server (libdatachannel) is tested on Linux only.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    option(SUNSHINE_ENABLE_TIZEN_WEBRTC "Serve the Moonlight WebRTC app on Samsung Tizen TVs." ON)
+else()
+    option(SUNSHINE_ENABLE_TIZEN_WEBRTC "Serve the Moonlight WebRTC app on Samsung Tizen TVs." OFF)
+endif()
+
 # PyroWave GPU encoders are available on Windows and Linux.
 if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
     option(SUNSHINE_ENABLE_PYROWAVE "Enable the PyroWave video codec." ON)

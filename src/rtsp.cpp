@@ -2523,6 +2523,10 @@ namespace rtsp_stream {
 
   void start() {
     platf::set_thread_name("rtsp");
+    // Moonlight GameStream is off: keep its RTSP port closed.
+    if (!config::moonlight_enabled()) {
+      return;
+    }
     auto shutdown_event = mail::man->event<bool>(mail::shutdown);
 
     server.map("OPTIONS"sv, &cmd_option);

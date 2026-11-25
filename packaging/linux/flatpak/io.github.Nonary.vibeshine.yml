@@ -79,6 +79,8 @@ modules:
       - -DSUNSHINE_ENABLE_PORTAL=ON
       - -DSUNSHINE_ENABLE_WAYLAND=ON
       - -DSUNSHINE_ENABLE_X11=ON
+      # The Moonlight WebRTC TV server needs libdatachannel, which has no module here yet.
+      - -DSUNSHINE_ENABLE_TIZEN_WEBRTC=OFF
       - -DSUNSHINE_PUBLISHER_NAME='Nonary'
       - -DSUNSHINE_PUBLISHER_WEBSITE='https://github.com/Nonary/vibeshine'
       - -DSUNSHINE_PUBLISHER_ISSUE_URL='https://github.com/Nonary/vibeshine/issues'

@@ -299,6 +299,76 @@ namespace config {
     int packetsize;
   };
 
+  /**
+   * @brief Streaming protocols Vibeshine serves: GameStream for Moonlight clients, WebRTC for the
+   * Moonlight WebRTC app on Samsung Tizen TVs.
+   */
+  enum class stream_protocol_e {
+    moonlight,  ///< Moonlight (GameStream) clients only.
+    webrtc,  ///< Moonlight WebRTC TVs only.
+    both,  ///< Moonlight clients and Moonlight WebRTC TVs.
+  };
+
+  /**
+   * @brief Read a `stream_protocol` value.
+   * @param protocol `moonlight`, `webrtc` or `both`.
+   * @return The protocol, or nothing for any other value.
+   */
+  constexpr std::optional<stream_protocol_e> parse_stream_protocol(std::string_view protocol) {
+    if (protocol == "moonlight") {
+      return stream_protocol_e::moonlight;
+    }
+    if (protocol == "webrtc") {
+      return stream_protocol_e::webrtc;
+    }
+    if (protocol == "both") {
+      return stream_protocol_e::both;
+    }
+    return std::nullopt;
+  }
+
+  /**
+   * @brief Whether Moonlight (GameStream) clients are served.
+   * @param protocol Configured protocols.
+   * @param tv_server_built Whether this build includes the Moonlight WebRTC TV server.
+   * @return `false` only when TVs alone were asked for and the TV server exists, so a build
+   * without it never serves nothing.
+   */
+  constexpr bool serves_moonlight(stream_protocol_e protocol, bool tv_server_built) {
+    return protocol != stream_protocol_e::webrtc || !tv_server_built;
+  }
+
+  /**
+   * @brief Whether Moonlight WebRTC TVs are served.
+   * @param protocol Configured protocols.
+   * @param tv_server_built Whether this build includes the Moonlight WebRTC TV server.
+   * @return `true` when TVs were asked for and the TV server exists.
+   */
+  constexpr bool serves_tvs(stream_protocol_e protocol, bool tv_server_built) {
+    return tv_server_built && protocol != stream_protocol_e::moonlight;
+  }
+
+  /**
+   * @brief Whether this build includes the Moonlight WebRTC TV server.
+   */
+  constexpr bool tizen_webrtc_built() {
+#ifdef SUNSHINE_ENABLE_TIZEN_WEBRTC
+    return true;
+#else
+    return false;
+#endif
+  }
+
+  /**
+   * @brief Settings of the Moonlight WebRTC TV server (libdatachannel / Tizen path).
+   */
+  struct webrtc_t {
+    stream_protocol_e protocol;  ///< Streaming protocols served.
+    int port;  ///< TCP port of the TV signaling WebSocket.
+    int media_port_min;  ///< First UDP port WebRTC media may use, 0 for any.
+    int media_port_max;  ///< Last UDP port WebRTC media may use, 0 for any.
+  };
+
   struct nvhttp_t {
     // Could be any of the following values:
     // pc|lan|wan
@@ -508,9 +578,22 @@ namespace config {
   extern video_t video;
   extern audio_t audio;
   extern stream_t stream;
+  extern webrtc_t webrtc;
   // One snapshot of the last completed apply; 0 preserves ENet defaults.
   std::chrono::milliseconds get_control_peer_timeout();
   extern nvhttp_t nvhttp;
+
+  stream_protocol_e stream_protocol_from_view(std::string_view protocol);
+
+  /**
+   * @brief Whether Moonlight (GameStream) clients are served with the current configuration.
+   */
+  bool moonlight_enabled();
+
+  /**
+   * @brief Whether Moonlight WebRTC TVs are served with the current configuration.
+   */
+  bool webrtc_enabled();
   extern input_t input;
   extern frame_limiter_t frame_limiter;
   extern rtss_t rtss;

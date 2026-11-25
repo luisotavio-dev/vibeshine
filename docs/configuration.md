@@ -2524,6 +2524,122 @@ These settings are host-wide and are not application runtime overrides.
     </tr>
 </table>
 
+### stream_protocol
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            Which clients Vibeshine serves: Moonlight apps over GameStream, Moonlight WebRTC clients such as
+            the Samsung Tizen app, or both. The ports of a protocol that is off stay closed. See
+            [Moonlight WebRTC for Samsung Tizen](moonlight_webrtc_tizen.md).
+            @note{This option applies to Linux builds with the Moonlight WebRTC TV server
+            (`SUNSHINE_ENABLE_TIZEN_WEBRTC`, on by default on Linux).}
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            moonlight
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            stream_protocol = both
+            @endcode</td>
+    </tr>
+    <tr>
+        <td rowspan="3">Choices</td>
+        <td>moonlight</td>
+        <td>Moonlight apps only (GameStream)</td>
+    </tr>
+    <tr>
+        <td>webrtc</td>
+        <td>Moonlight WebRTC clients only</td>
+    </tr>
+    <tr>
+        <td>both</td>
+        <td>Both protocols</td>
+    </tr>
+</table>
+
+### webrtc_port
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            TCP port of the Moonlight WebRTC signaling WebSocket that clients connect to. Discovery always
+            listens on UDP port 8000. See [Moonlight WebRTC for Samsung Tizen](moonlight_webrtc_tizen.md).
+            @note{This option applies to Linux builds with the Moonlight WebRTC TV server
+            (`SUNSHINE_ENABLE_TIZEN_WEBRTC`, on by default on Linux).}
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            8000
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            webrtc_port = 8000
+            @endcode</td>
+    </tr>
+</table>
+
+### webrtc_media_port_min
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            First UDP port for WebRTC video and audio. 0, together with webrtc_media_port_max, lets the system pick any port.
+            @note{This option applies to Linux builds with the Moonlight WebRTC TV server
+            (`SUNSHINE_ENABLE_TIZEN_WEBRTC`, on by default on Linux).}
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            0
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            webrtc_media_port_min = 50000
+            @endcode</td>
+    </tr>
+</table>
+
+### webrtc_media_port_max
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            Last UDP port for WebRTC video and audio. 0 leaves the range open upwards, to 65535.
+            @note{This option applies to Linux builds with the Moonlight WebRTC TV server
+            (`SUNSHINE_ENABLE_TIZEN_WEBRTC`, on by default on Linux).}
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            0
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            webrtc_media_port_max = 50100
+            @endcode</td>
+    </tr>
+</table>
+
 ### bind_address
 
 <table>

@@ -1,0 +1,90 @@
+/**
+ * @file tests/unit/tizen_webrtc/test_webrtc_sdp.cpp
+ * @brief Tests for the Samsung Tizen SDP helpers.
+ */
+// lib includes
+#include <gtest/gtest.h>
+
+// local includes
+#include "src/tizen_webrtc/sdp.h"
+
+using namespace tizen_webrtc;
+
+namespace {
+  protocol::stream_settings_t settings(int width, int height, protocol::video_codec_e codec, bool hdr) {
+    protocol::stream_settings_t value;
+    value.width = width;
+    value.height = height;
+    value.codec = codec;
+    value.hdr = hdr;
+    return value;
+  }
+
+  std::string offer(std::string_view video_lines) {
+    return "v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\n" + std::string(video_lines) + "m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\na=sctp-port:5000\r\n";
+  }
+}  // namespace
+
+TEST(WebrtcSdpTest, BuildsTheGameModeImageAttribute) {
+  EXPECT_EQ(sdp::game_mode_image_attribute(settings(1920, 1080, protocol::video_codec_e::h264, false)), "imageattr:96 send [x=[1920:1920],y=[1080:1080],fps=[60:60]]");
+}
+
+TEST(WebrtcSdpTest, AcceptsOneImageAttributeInTheVideoSection) {
+  const auto value = settings(1920, 1080, protocol::video_codec_e::h264, false);
+  const auto attribute = "a=" + sdp::game_mode_image_attribute(value) + "\r\n";
+  EXPECT_TRUE(sdp::has_valid_game_mode_image_attribute(offer("a=rtpmap:96 H264/90000\r\n" + attribute), value));
+  EXPECT_FALSE(sdp::has_valid_game_mode_image_attribute(offer(attribute + attribute), value));
+  EXPECT_FALSE(sdp::has_valid_game_mode_image_attribute(offer("a=rtpmap:96 H264/90000\r\n"), value));
+  EXPECT_FALSE(sdp::has_valid_game_mode_image_attribute(offer(attribute) + "a=bare\n", value));
+}
+
+TEST(WebrtcSdpTest, ReadsTheVideoExtensionIdTheTvAccepted) {
+  const std::string uri = sdp::PLAYOUT_DELAY_EXTENSION_URI;
+  EXPECT_EQ(sdp::video_extension_id(offer("a=extmap:6 " + uri + "\r\n"), uri), 6);
+  EXPECT_EQ(sdp::video_extension_id(offer("a=extmap:9 http://example.com/other\r\na=extmap:12/recvonly " + uri + " attribute\r\n"), uri), 12);
+  EXPECT_EQ(sdp::video_extension_id(offer("a=extmap:6 " + uri + "-v2\r\n"), uri), std::nullopt);
+  EXPECT_EQ(sdp::video_extension_id(offer("a=extmap:x " + uri + "\r\n"), uri), std::nullopt);
+  EXPECT_EQ(sdp::video_extension_id(offer("a=rtpmap:96 H264/90000\r\n"), uri), std::nullopt);
+  // Only the video section counts: an audio section's extension does not mark video packets.
+  EXPECT_EQ(sdp::video_extension_id("v=0\r\nm=audio 9 RTP 111\r\na=extmap:6 " + uri + "\r\n" + offer(""), uri), std::nullopt);
+  EXPECT_EQ(sdp::video_extension_id("v=0\r\n", uri), std::nullopt);
+}
+
+TEST(WebrtcSdpTest, RequiresTheRequestedCodecAlone) {
+  EXPECT_TRUE(sdp::has_expected_video_codec(offer("a=rtpmap:96 H265/90000\r\n"), protocol::video_codec_e::hevc));
+  EXPECT_FALSE(sdp::has_expected_video_codec(offer("a=rtpmap:96 H265/90000\r\na=rtpmap:97 H264/90000\r\n"), protocol::video_codec_e::hevc));
+  EXPECT_FALSE(sdp::has_expected_video_codec(offer("a=rtpmap:96 H264/90000\r\n"), protocol::video_codec_e::av1));
+  EXPECT_TRUE(sdp::has_expected_video_codec(offer("a=rtpmap:96 AV1/90000\r\n"), protocol::video_codec_e::av1));
+}
+
+TEST(WebrtcSdpTest, RequestsHevcMain10AtTheLevelOfTheResolution) {
+  EXPECT_FALSE(sdp::hevc_format_parameters(settings(1920, 1080, protocol::video_codec_e::hevc, false)));
+  EXPECT_FALSE(sdp::hevc_format_parameters(settings(1920, 1080, protocol::video_codec_e::av1, true)));
+  EXPECT_EQ(sdp::hevc_format_parameters(settings(1920, 1080, protocol::video_codec_e::hevc, true)), "profile-id=2;tier-flag=0;level-id=123");
+  EXPECT_EQ(sdp::hevc_format_parameters(settings(2560, 1440, protocol::video_codec_e::hevc, true)), "profile-id=2;tier-flag=0;level-id=150");
+  EXPECT_EQ(sdp::hevc_format_parameters(settings(3840, 2160, protocol::video_codec_e::hevc, true)), "profile-id=2;tier-flag=0;level-id=153");
+  // The level follows the luma sample rate, so higher frame rates need higher levels.
+  auto fast = settings(1920, 1080, protocol::video_codec_e::hevc, true);
+  fast.fps = 120;
+  EXPECT_EQ(sdp::hevc_format_parameters(fast), "profile-id=2;tier-flag=0;level-id=150");
+  fast = settings(2560, 1440, protocol::video_codec_e::hevc, true);
+  fast.fps = 120;
+  EXPECT_EQ(sdp::hevc_format_parameters(fast), "profile-id=2;tier-flag=0;level-id=153");
+  fast = settings(3840, 2160, protocol::video_codec_e::hevc, true);
+  fast.fps = 120;
+  EXPECT_EQ(sdp::hevc_format_parameters(fast), "profile-id=2;tier-flag=0;level-id=156");
+}
+
+TEST(WebrtcSdpTest, ChecksThatTheAnswerKeepsMain10) {
+  const auto hdr = settings(3840, 2160, protocol::video_codec_e::hevc, true);
+  EXPECT_TRUE(sdp::has_expected_hevc_format_parameters(offer("a=fmtp:96 level-id=150; profile-id=2;tier-flag=0\r\n"), hdr));
+  EXPECT_FALSE(sdp::has_expected_hevc_format_parameters(offer("a=fmtp:96 profile-id=1;tier-flag=0\r\n"), hdr));
+  EXPECT_TRUE(sdp::has_expected_hevc_format_parameters(offer(""), settings(1920, 1080, protocol::video_codec_e::hevc, false)));
+  EXPECT_EQ(sdp::hevc_level_id(offer("a=fmtp:96 profile-id=2;level-id=150\r\n")), 150);
+  EXPECT_FALSE(sdp::hevc_level_id(offer("a=fmtp:96 profile-id=2;level-id=15x\r\n")));
+}
+
+TEST(WebrtcSdpTest, DetectsTheDataChannelSection) {
+  EXPECT_TRUE(sdp::has_data_channel_section(offer("")));
+  EXPECT_FALSE(sdp::has_data_channel_section("v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\n"));
+}

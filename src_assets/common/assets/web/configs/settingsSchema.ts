@@ -1009,6 +1009,39 @@ export const settingsCategories: SettingsCategory[] = [
           ]),
           boolean('upnp', { restartRequired: true }),
           select(
+            'stream_protocol',
+            [
+              option('moonlight', 'ui.settings.options.stream_protocol.moonlight'),
+              option('webrtc', 'ui.settings.options.stream_protocol.webrtc'),
+              option('both', 'ui.settings.options.stream_protocol.both'),
+            ],
+            { platform: 'linux', restartRequired: true },
+          ),
+          number('webrtc_port', {
+            platform: 'linux',
+            min: 1024,
+            max: 65535,
+            step: 1,
+            restartRequired: true,
+            visibleWhen: { key: 'stream_protocol', notEquals: 'moonlight' },
+          }),
+          number('webrtc_media_port_min', {
+            platform: 'linux',
+            min: 0,
+            max: 65535,
+            step: 1,
+            restartRequired: true,
+            visibleWhen: { key: 'stream_protocol', notEquals: 'moonlight' },
+          }),
+          number('webrtc_media_port_max', {
+            platform: 'linux',
+            min: 0,
+            max: 65535,
+            step: 1,
+            restartRequired: true,
+            visibleWhen: { key: 'stream_protocol', notEquals: 'moonlight' },
+          }),
+          select(
             'address_family',
             [
               option('ipv4', 'ui.settings.options.address_family.ipv4'),
@@ -1173,6 +1206,10 @@ export const settingsDefaults: Record<string, unknown> = {
   controller: true,
   origin_web_ui_allowed: 'lan',
   upnp: false,
+  stream_protocol: 'moonlight',
+  webrtc_port: 8000,
+  webrtc_media_port_min: 0,
+  webrtc_media_port_max: 0,
   output_name: '',
   adapter_name: '',
   adapter_pnp_id: '',
@@ -1273,7 +1310,17 @@ export const knownSettingsKeys = new Set(
 );
 knownSettingsKeys.add('adapter_pnp_id');
 
-export const restartRequiredKeys = new Set(['address_family', 'cert', 'pkey', 'port', 'upnp']);
+export const restartRequiredKeys = new Set([
+  'address_family',
+  'cert',
+  'pkey',
+  'port',
+  'stream_protocol',
+  'upnp',
+  'webrtc_media_port_max',
+  'webrtc_media_port_min',
+  'webrtc_port',
+]);
 
 export function matchesPlatform(
   field: { platform?: SettingsField['platform'] },

@@ -2,3 +2,8 @@
 title=Vibeshine
 description=Vibeshine game-streaming host for Moonlight clients
 ports=47984,47989,47990,48010/tcp|47998:48000,48010/udp
+
+[Vibeshine Tizen WebRTC]
+title=Vibeshine Tizen WebRTC
+description=Vibeshine signaling and discovery for the Moonlight WebRTC app on Samsung Tizen TVs
+ports=8000/tcp|8000/udp

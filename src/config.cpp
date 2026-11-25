@@ -999,6 +999,29 @@ namespace config {
     0,  // packetsize (0 = off)
   };
 
+  webrtc_t webrtc {
+    stream_protocol_e::moonlight,  // protocol, TVs are opt-in
+    8000,  // port, the Moonlight WebRTC TV client's default
+    0,  // media_port_min, any
+    0,  // media_port_max, any
+  };
+
+  stream_protocol_e stream_protocol_from_view(std::string_view protocol) {
+    if (const auto parsed = parse_stream_protocol(protocol)) {
+      return *parsed;
+    }
+    BOOST_LOG(warning) << "config: unknown stream_protocol value: "sv << protocol << ", serving Moonlight clients only"sv;
+    return stream_protocol_e::moonlight;
+  }
+
+  bool moonlight_enabled() {
+    return serves_moonlight(webrtc.protocol, tizen_webrtc_built());
+  }
+
+  bool webrtc_enabled() {
+    return serves_tvs(webrtc.protocol, tizen_webrtc_built());
+  }
+
   nvhttp_t nvhttp {
     "lan",  // origin web manager
 
@@ -2143,6 +2166,13 @@ namespace config {
     int_between_f(vars, "pyrowave_critical_fec_percentage", stream.pyrowave_critical_fec_percentage, {0, 255});
     int_between_f(vars, "pacing_max_bitrate_kbps", stream.pacing_max_bitrate_kbps, {0, 10000000});
     int_between_f(vars, "packetsize", stream.packetsize, {0, PACKETSIZE_MAX});
+    generic_f(vars, "stream_protocol", webrtc.protocol, stream_protocol_from_view);
+    if (webrtc.protocol != stream_protocol_e::moonlight && !tizen_webrtc_built()) {
+      BOOST_LOG(warning) << "config: this build has no Moonlight WebRTC TV server, serving Moonlight clients only"sv;
+    }
+    int_between_f(vars, "webrtc_port", webrtc.port, {1024, 65535});
+    int_between_f(vars, "webrtc_media_port_min", webrtc.media_port_min, {0, 65535});
+    int_between_f(vars, "webrtc_media_port_max", webrtc.media_port_max, {0, 65535});
     int_between_f(vars, "video_max_batch_size_kb", stream.video_max_batch_size_kb, {0, 64});
     bool_f(vars, "pacing_batch_demand_limit", stream.pacing_batch_demand_limit);
     bool_f(vars, "host_adaptive_pacing", stream.host_adaptive_pacing);

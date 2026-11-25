@@ -687,8 +687,32 @@ sunshine_register_component(NAME test_component_display_helper_saved_placement T
     LINK_LIBRARIES sunshine_test_displaydevice_headers nlohmann_json::nlohmann_json)
 sunshine_register_component(NAME test_component_config_parse TEST_SOURCE unit/test_config_parse.cpp
     PRODUCT_SOURCES)
+sunshine_register_component(NAME test_component_stream_protocol_selection TEST_SOURCE unit/test_stream_protocol_selection.cpp)
 sunshine_register_component(NAME test_component_session_packet_queue TEST_SOURCE unit/test_session_packet_queue.cpp
     LINK_LIBRARIES Boost::process Threads::Threads)
+if(SUNSHINE_ENABLE_TIZEN_WEBRTC)
+    sunshine_register_component(NAME test_component_tizen_webrtc_protocol
+        TEST_SOURCE unit/tizen_webrtc/test_webrtc_protocol.cpp
+        PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/tizen_webrtc/protocol.cpp"
+        LINK_LIBRARIES nlohmann_json::nlohmann_json)
+    sunshine_register_component(NAME test_component_tizen_webrtc_sdp
+        TEST_SOURCE unit/tizen_webrtc/test_webrtc_sdp.cpp
+        PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/tizen_webrtc/sdp.cpp"
+                        "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/tizen_webrtc/protocol.cpp"
+        LINK_LIBRARIES nlohmann_json::nlohmann_json)
+    sunshine_register_component(NAME test_component_tizen_webrtc_tv_auth
+        TEST_SOURCE unit/tizen_webrtc/test_webrtc_tv_auth.cpp
+        PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/tizen_webrtc/tv_auth.cpp"
+        LINK_LIBRARIES nlohmann_json::nlohmann_json OpenSSL::Crypto)
+    sunshine_register_component(NAME test_component_tizen_webrtc_input_bridge
+        TEST_SOURCE unit/tizen_webrtc/test_webrtc_input_bridge.cpp
+        PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/tizen_webrtc/input_bridge.cpp"
+                        "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/logging.cpp"
+                        "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/logging_policy.cpp"
+        LINK_LIBRARIES sunshine_test_moonlight_headers nlohmann_json::nlohmann_json Threads::Threads
+                       Boost::log Boost::asio Boost::crc Boost::format Boost::regex ZLIB::ZLIB
+                       ${SUNSHINE_TEST_SOCKET_LIBRARIES})
+endif()
 sunshine_register_component(NAME test_component_managed_app_focus TEST_SOURCE unit/test_managed_app_focus.cpp
     PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/managed_app_focus.cpp"
                     "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/steam_process_tracker.cpp")

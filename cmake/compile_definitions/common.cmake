@@ -243,6 +243,23 @@ set(SUNSHINE_TARGET_FILES
         "${CMAKE_SOURCE_DIR}/src/host_stats_types.h"
         ${PLATFORM_TARGET_FILES})
 
+# Moonlight WebRTC TV server. When it is not built, a stub keeps its API for the HTTP handlers.
+list(APPEND SUNSHINE_TARGET_FILES "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/webrtc_stream.h")
+if(SUNSHINE_ENABLE_TIZEN_WEBRTC)
+    list(APPEND SUNSHINE_TARGET_FILES
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/input_bridge.cpp"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/input_bridge.h"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/protocol.cpp"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/protocol.h"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/sdp.cpp"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/sdp.h"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/tv_auth.cpp"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/tv_auth.h"
+            "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/webrtc_stream.cpp")
+else()
+    list(APPEND SUNSHINE_TARGET_FILES "${CMAKE_SOURCE_DIR}/src/tizen_webrtc/webrtc_stream_disabled.cpp")
+endif()
+
 if(NOT SUNSHINE_ASSETS_DIR_DEF)
     set(SUNSHINE_ASSETS_DIR_DEF "${SUNSHINE_ASSETS_DIR}")
 endif()
@@ -347,3 +364,7 @@ list(APPEND SUNSHINE_EXTERNAL_LIBRARIES
         ${Boost_LIBRARIES}
         ${OPENSSL_LIBRARIES}
         ${PLATFORM_LIBRARIES})
+
+if(SUNSHINE_ENABLE_TIZEN_WEBRTC)
+    list(APPEND SUNSHINE_EXTERNAL_LIBRARIES ${SUNSHINE_LIBDATACHANNEL_TARGET})
+endif()
