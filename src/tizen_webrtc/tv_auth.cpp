@@ -152,6 +152,8 @@ namespace tizen_webrtc::tv_auth {
     if (!std::filesystem::exists(_path, error)) {
       return;
     }
+    // Tighten a store written before saves restricted it; a failure leaves the file as it was.
+    std::filesystem::permissions(_path, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write, std::filesystem::perm_options::replace, error);
     try {
       std::ifstream input(_path, std::ios::binary);
       const json value = json::parse(std::string(std::istreambuf_iterator<char>(input), {}));
@@ -180,14 +182,21 @@ namespace tizen_webrtc::tv_auth {
 
     auto temporary_path = _path;
     temporary_path += ".tmp";
+    std::error_code error;
     {
       std::ofstream output(temporary_path, std::ios::binary | std::ios::trunc);
+      // The file holds client secrets: restrict it to the owner before any secret is written.
+      std::filesystem::permissions(temporary_path, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write, std::filesystem::perm_options::replace, error);
+      if (!output || error) {
+        output.close();
+        std::filesystem::remove(temporary_path, error);
+        throw std::runtime_error("Unable to restrict access to the paired TV list");
+      }
       output.write(contents.data(), static_cast<std::streamsize>(contents.size()));
       if (!output) {
         throw std::runtime_error("Unable to write the paired TV list");
       }
     }
-    std::error_code error;
     std::filesystem::rename(temporary_path, _path, error);
     if (error) {
       std::filesystem::remove(temporary_path, error);

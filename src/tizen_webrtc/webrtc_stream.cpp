@@ -819,6 +819,39 @@ namespace tizen_webrtc {
       }
 
       /**
+       * @brief Approve the one pending TV pairing request whose PIN matches.
+       *
+       * Requests with another PIN stay pending, so a stray or hostile request cannot consume the
+       * PIN meant for the TV in front of the user. Two requests with the same PIN are ambiguous:
+       * one may replay a PIN read off the unencrypted signaling socket, so both are declined.
+       *
+       * @param pin PIN entered in the Web UI.
+       * @param name Name to store; the TV's own name when empty.
+       * @return Whether the TV paired, or nothing when no pending TV shows this PIN.
+       */
+      std::optional<bool> approve_pairing_by_pin(std::string_view pin, std::string_view name) {
+        const auto now = tv_auth::pairing_request_t::clock::now();
+        std::vector<std::string> matches;
+        for (const auto &connection : pending_connections()) {
+          std::lock_guard lock(connection->mutex);
+          if (connection->pairing && tv_auth::check_pairing_pin(*connection->pairing, pin, now) == tv_auth::pairing_check_e::accepted) {
+            matches.push_back(connection->pairing->id);
+          }
+        }
+        if (matches.empty()) {
+          return std::nullopt;
+        }
+        if (matches.size() > 1) {
+          BOOST_LOG(warning) << "WebRTC: "sv << matches.size() << " pending TV pairing requests share the entered PIN; declining all of them"sv;
+          for (const auto &id : matches) {
+            (void) cancel_pairing(id);
+          }
+          return false;
+        }
+        return approve_pairing(matches.front(), pin, name);
+      }
+
+      /**
        * @brief Decline a TV's pairing request.
        * @param id Pairing request ID.
        * @return True when it was declined, or nothing when no TV made that request.
@@ -2330,6 +2363,11 @@ namespace tizen_webrtc {
   std::optional<bool> approve_tv_pairing(std::string_view pairing_id, std::string_view pin, std::string_view name) {
     std::lock_guard lock(server_mutex);
     return running_server ? running_server->approve_pairing(pairing_id, pin, name) : std::nullopt;
+  }
+
+  std::optional<bool> approve_tv_pairing_by_pin(std::string_view pin, std::string_view name) {
+    std::lock_guard lock(server_mutex);
+    return running_server ? running_server->approve_pairing_by_pin(pin, name) : std::nullopt;
   }
 
   std::optional<bool> cancel_tv_pairing(std::string_view pairing_id) {

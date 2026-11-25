@@ -75,6 +75,17 @@ namespace tizen_webrtc {
   std::optional<bool> approve_tv_pairing(std::string_view pairing_id, std::string_view pin, std::string_view name);
 
   /**
+   * @brief Pair the one pending TV whose PIN matches, leaving requests with other PINs pending.
+   *
+   * When several pending TVs show the same PIN, none is paired and all are declined.
+   *
+   * @param pin PIN entered in the Web UI.
+   * @param name Name to store; the TV's own name when empty.
+   * @return Whether a TV paired, or nothing when no pending TV shows this PIN.
+   */
+  std::optional<bool> approve_tv_pairing_by_pin(std::string_view pin, std::string_view name);
+
+  /**
    * @brief Decline a TV's pairing request.
    * @param pairing_id Pairing request ID.
    * @return True when it was declined, or nothing when no TV made that request.

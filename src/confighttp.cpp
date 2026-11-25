@@ -4668,20 +4668,9 @@ namespace confighttp {
         bad_request(response, request, "PIN must be between 0000 and 9999");
       }
 
-      bool paired = false;
-      bool tried_tv = false;
-      for (const auto &pending : tizen_webrtc::pending_tv_pairings()) {
-        const auto tv_paired = tizen_webrtc::approve_tv_pairing(pending.id, pin, name);
-        if (!tv_paired.has_value()) {
-          continue;
-        }
-        tried_tv = true;
-        paired = *tv_paired;
-        break;
-      }
-      if (!tried_tv) {
-        paired = nvhttp::pin(pin, name);
-      }
+      // A TV takes the PIN only when it shows that PIN; otherwise it goes to a pending Moonlight client.
+      const auto tv_paired = tizen_webrtc::approve_tv_pairing_by_pin(pin, name);
+      const bool paired = tv_paired.has_value() ? *tv_paired : nvhttp::pin(pin, name);
       output_tree["status"] = paired;
       if (!paired) {
         BOOST_LOG(warning) << "SavePin: no pending Moonlight or WebRTC TV pairing request accepted the submitted PIN";
