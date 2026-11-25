@@ -3,6 +3,7 @@
  * @brief Vulkan-native encoder: DMA-BUF -> Vulkan compute (RGB->YUV) -> Vulkan Video encode.
  *        No EGL/GL dependency — all GPU work stays in a single Vulkan queue.
  */
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <cstdint>
@@ -50,6 +51,20 @@ namespace vk {
     std::array<std::uint8_t, VK_UUID_SIZE> uuid {};
   };
 
+  static bool device_supports_extension(VkPhysicalDevice device, std::string_view name) {
+    uint32_t count = 0;
+    if (vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr) != VK_SUCCESS) {
+      return false;
+    }
+    std::vector<VkExtensionProperties> extensions(count);
+    if (vkEnumerateDeviceExtensionProperties(device, nullptr, &count, extensions.data()) != VK_SUCCESS) {
+      return false;
+    }
+    return std::ranges::any_of(extensions, [name](const VkExtensionProperties &extension) {
+      return name == extension.extensionName;
+    });
+  }
+
   // Match a DRI primary/render node to a Vulkan device and retain a stable UUID
   // so the independently created FFmpeg device can be verified before import.
   static std::optional<resolved_vulkan_device_t> find_vulkan_device_for_drm_node(const char *device_path) {
@@ -64,11 +79,12 @@ namespace vk {
     VkApplicationInfo app = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
     app.apiVersion = VK_API_VERSION_1_1;
 
-    static const std::array<const char *, 1> instance_exts = {VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME};
+    // VK_EXT_physical_device_drm is a device extension: asking for it on the
+    // instance fails with VK_ERROR_EXTENSION_NOT_PRESENT, so no node ever
+    // matched. vkGetPhysicalDeviceProperties2 is core in Vulkan 1.1, and each
+    // device reports below whether it supports the extension.
     VkInstanceCreateInfo ci = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     ci.pApplicationInfo = &app;
-    ci.enabledExtensionCount = instance_exts.size();
-    ci.ppEnabledExtensionNames = instance_exts.data();
     VkInstance inst = VK_NULL_HANDLE;
     if (vkCreateInstance(&ci, nullptr, &inst) != VK_SUCCESS) {
       return std::nullopt;
@@ -87,6 +103,9 @@ namespace vk {
     }
 
     for (uint32_t i = 0; i < count; i++) {
+      if (!device_supports_extension(devs[i], VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME)) {
+        continue;
+      }
       VkPhysicalDeviceDrmPropertiesEXT drm = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT};
       VkPhysicalDeviceIDProperties id = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES};
       drm.pNext = &id;
