@@ -5343,7 +5343,7 @@ namespace video {
     std::chrono::duration<double, std::milli> encode_frame_threshold {1000000.0 / config.encodingFramerate};
     BOOST_LOG(info) << "Minimum FPS target set to ~"sv << (minimum_fps_target / 2) << "fps ("sv << max_frametime.count() * 2 << "ms)"sv;
 
-    auto packets = mail::man->queue<packet_t>(mail::video_packets);
+    auto packets = mail::packet_queue<packet_t>(mail, mail::video_packets);
     auto idr_events = mail->event<bool>(mail::idr);
     auto hdr_event = mail->event<hdr_info_t>(mail::hdr);
     auto invalidate_ref_frames_events = mail->event<std::pair<int64_t, int64_t>>(mail::invalidate_ref_frames);
@@ -6393,7 +6393,7 @@ namespace video {
 
     auto shutdown_event = mail->event<bool>(mail::shutdown);
     auto touch_port_event = mail->event<input::touch_port_t>(mail::touch_port);
-    auto packets = mail::man->queue<packet_t>(mail::video_packets);
+    auto packets = mail::packet_queue<packet_t>(mail, mail::video_packets);
     auto idr_events = mail->event<bool>(mail::idr);
     auto hdr_event = mail->event<hdr_info_t>(mail::hdr);
     auto invalidate_ref_frames_events = mail->event<std::pair<int64_t, int64_t>>(mail::invalidate_ref_frames);
@@ -6818,7 +6818,7 @@ namespace video {
       sync_session_ctx_t session_ctx {
         &join_event,
         shutdown_event,
-        mail::man->queue<packet_t>(mail::video_packets),
+        mail::packet_queue<packet_t>(mail, mail::video_packets),
         std::move(idr_events),
         mail->event<hdr_info_t>(mail::hdr),
         mail->event<input::touch_port_t>(mail::touch_port),

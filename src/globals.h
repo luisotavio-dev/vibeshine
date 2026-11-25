@@ -64,4 +64,20 @@ namespace mail {
     return man ? man->event<bool>(shutdown) : nullptr;
   }
 
+  /**
+   * @brief Select the queue that receives a session's encoded packets.
+   *
+   * A session that registers its own queue under @p id in its mailbox consumes its packets
+   * itself. Every other session publishes to the process-wide queue drained by the GameStream
+   * broadcast threads. The mailbox holds the queue weakly, so packets return to the process-wide
+   * queue once the session drops it.
+   */
+  template<class T>
+  safe::mail_raw_t::queue_t<T> packet_queue(const safe::mail_t &session_mail, std::string_view id) {
+    if (session_mail && session_mail->has(id)) {
+      return session_mail->queue<T>(id);
+    }
+    return man->queue<T>(id);
+  }
+
 }  // namespace mail

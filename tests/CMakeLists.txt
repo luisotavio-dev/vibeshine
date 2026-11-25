@@ -687,6 +687,8 @@ sunshine_register_component(NAME test_component_display_helper_saved_placement T
     LINK_LIBRARIES sunshine_test_displaydevice_headers nlohmann_json::nlohmann_json)
 sunshine_register_component(NAME test_component_config_parse TEST_SOURCE unit/test_config_parse.cpp
     PRODUCT_SOURCES)
+sunshine_register_component(NAME test_component_session_packet_queue TEST_SOURCE unit/test_session_packet_queue.cpp
+    LINK_LIBRARIES Boost::process Threads::Threads)
 sunshine_register_component(NAME test_component_managed_app_focus TEST_SOURCE unit/test_managed_app_focus.cpp
     PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/managed_app_focus.cpp"
                     "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/steam_process_tracker.cpp")
