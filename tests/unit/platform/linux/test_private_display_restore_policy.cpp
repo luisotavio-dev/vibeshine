@@ -62,7 +62,7 @@ TEST(LinuxPrivateDisplayRestorePolicy, SavesDesktopBeforeHotplugCanEnablePanelAn
 }
 
 TEST(LinuxPrivateDisplayRestorePolicy, ReconnectAndSecondClientKeepFirstSnapshot) {
-  std::optional<json> snapshot = external_desktop();
+  std::optional<json> snapshot {std::in_place, external_desktop()};
   const auto original = *snapshot;
   int queries = 0;
   int connections = 0;
@@ -799,7 +799,7 @@ TEST(LinuxPrivateDisplaySnapshot, RestartRestoresSavedIntentFromSerializedBaseli
 TEST(LinuxPrivateDisplaySnapshot, IdleRefreshRunsEvenWhenOldSnapshotAlreadyExists) {
   auto old = external_desktop();
   old["outputs"][0]["enabled"] = true;
-  std::optional<json> snapshot = old;
+  std::optional<json> snapshot {std::in_place, old};
   const auto current = external_desktop();
   int saves = 0;
   ASSERT_TRUE(snapshot_policy::capture(snapshot, current, {"Virtual-1"}, false, [&](const json &saved) {
@@ -812,7 +812,7 @@ TEST(LinuxPrivateDisplaySnapshot, IdleRefreshRunsEvenWhenOldSnapshotAlreadyExist
 }
 
 TEST(LinuxPrivateDisplaySnapshot, ConnectedPrivateOrRetainedOwnerPreservesCrashBaseline) {
-  std::optional<json> snapshot = external_desktop();
+  std::optional<json> snapshot {std::in_place, external_desktop()};
   const auto original = *snapshot;
   auto current = original;
   current["outputs"][1]["enabled"] = false;
@@ -832,7 +832,7 @@ TEST(LinuxPrivateDisplaySnapshot, ConnectedPrivateOrRetainedOwnerPreservesCrashB
 }
 
 TEST(LinuxPrivateDisplaySnapshot, FailedPersistencePreventsSnapshotReplacementAndHotplug) {
-  std::optional<json> snapshot = external_desktop();
+  std::optional<json> snapshot {std::in_place, external_desktop()};
   const auto original = *snapshot;
   auto current = original;
   current["outputs"][1]["rotation"] = 8;
@@ -1123,7 +1123,7 @@ TEST(LinuxPrivateDisplayHandoff, EnabledPhysicalLayoutBlocksTransferAndRetiredVi
   const auto adopted_without_orphan = adopt_greeter(record, current);
   ASSERT_TRUE(adopted_without_orphan);
   EXPECT_EQ(*adopted_without_orphan, record["topology"]);
-  std::optional<json> startup_snapshot = *adopted_without_orphan;
+  std::optional<json> startup_snapshot {std::in_place, *adopted_without_orphan};
   unsigned startup_writes = 0;
   EXPECT_EQ(snapshot_policy::prepare_startup(startup_snapshot, current, {"Virtual-1"},
     [&](const json &) { ++startup_writes; return true; }), snapshot_policy::startup_action_e::recover);
@@ -1170,7 +1170,7 @@ TEST(LinuxPrivateDisplayHandoff, ReboundIntentSurvivesDesktopRestartAndVirtualOn
 
 TEST(LinuxPrivateDisplayHandoff, PendingBaselineSurvivesOrphanDisappearanceBeforeNewAcquisition) {
   const auto original = greeter_handoff_record()["topology"];
-  std::optional<json> snapshot = original;
+  std::optional<json> snapshot {std::in_place, original};
   auto current = orphan_desktop();
   current["outputs"].erase(2);
   unsigned writes = 0;
